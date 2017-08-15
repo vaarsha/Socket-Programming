@@ -5,23 +5,48 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <unistd.h>
+#include<time.h>
 
 #define PORTNO "3490"
 #define BACKLOG 5
+#define MAXDATASIZE 100
+
+int calculate(int number1, char operator, int number2)
+{
+	int result = 0;
+
+	switch(operator) {
+		case '+': result = number1 + number2;
+			  break;
+		case '-': result = number1 - number2;
+			  break;
+		case '*': result = number1 * number2;
+			  break;
+		case '/': result = number1 / number2;
+			  break;
+		default: printf("Invalid operator");
+	}
+	return result;
+}
 
 int main(int argc, char *argv[])
 {
 	struct addrinfo hints, *res;
 	struct sockaddr_in client;
-	int sockfd, newsockfd, status, yes =1;
+	int sockfd, newsockfd, status, numbytes, yes =1;
 	socklen_t sin_size;
+	char buf[MAXDATASIZE], opt, strtoint[MAXDATASIZE];
+	char op[] = { '+', '-', '*', '/'};
+	int num1, num2, output, retval, score = 0;
+	time_t t;
+	char opbuf[MAXDATASIZE];
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;    //AF_UNSPEC
 	hints.ai_flags = AI_PASSIVE; //address of local host
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ((status = getaddrinfo(NULL, "3490", &hints, &res)) != 0) {
+	if ((status = getaddrinfo(NULL, PORTNO, &hints, &res)) != 0) {
 			fprintf(stderr, "getaddrinfo error: %s\n",
 				gai_strerror(status));
 			exit(1);
@@ -39,32 +64,77 @@ int main(int argc, char *argv[])
 		perror("bind failed");
 	}
 
-	//connect(sockfd, res->ai_addr, res->ai_addrlen);
 	if (listen(sockfd, BACKLOG) == -1) {
-		perror("listen");
+		perror("listen failed");
 		exit(1);
 	}
 	printf("Waiting for connections\n");
-	while(1) {
-		sin_size = sizeof(client);
-		newsockfd = accept(sockfd, (struct sockaddr *) &client,
-				   &sin_size);
-		if (newsockfd == -1) {
-			perror("accept");
-			continue;
-		}
 
-		printf("Connection accepted\n");
-		if (!fork()) {
-			close(sockfd);
-			if (send(newsockfd, "Hello, world!", 13, 0) == -1)
-				perror("send");
-			close(newsockfd);
-			exit(0);
-		}
-		close(newsockfd);
+	sin_size = sizeof(client);
+	newsockfd = accept(sockfd, (struct sockaddr *) &client, &sin_size);
+	
+	if (newsockfd == -1) {
+		perror("accept");
+		exit(1);
 	}
 
+	printf("Connection accepted\n");
+	
+	close(sockfd);
+	
+	if (send(newsockfd, "Solve the following problems", 31, 0) == -1)
+		perror("send");
+	
+	srand((unsigned) time(&t));
+	
+	while(1) {	
+		num1 = rand()%20;
+		num2 = rand()%20;
+		opt = op[rand()%4];
+		output = calculate(num1, opt, num2);
+		
+		sprintf(strtoint," %d %c %d",num1, opt, num2);
+
+		if(send(newsockfd, strtoint, strlen(strtoint), 0) == -1) {
+				close(newsockfd);
+				perror("send");
+				exit(1);
+		}
+		
+		if ((numbytes = recv(newsockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+				close(newsockfd);
+				perror("receiver");
+				exit(1);
+		}
+		
+		if (numbytes == 0) {
+			close(newsockfd);
+			perror("connection closed");
+			exit(1);
+		}
+
+		buf[numbytes] = '\0';
+		if (strncmp(buf,"stop", 4) == 0)
+			break;
+
+		retval = atoi(buf);
+
+		if (retval == output)
+			score++;
+		else
+			score--;
+	}
+	
+out:
+	sprintf(strtoint,"%d",score);	
+	if (send(newsockfd, "Bye and your final score is ", 25, 0) == -1)
+		perror("send");
+	
+	if (send(newsockfd, strtoint, strlen(strtoint), 0) == -1)
+		perror("send");
+		
+	close(newsockfd);
 	freeaddrinfo(res);
+
 	return 0;
 }

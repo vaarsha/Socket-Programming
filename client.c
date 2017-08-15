@@ -14,7 +14,7 @@ int main()
 	struct addrinfo hints, *res;
 	int sockfd,len, numbytes, status;
 	char buf[MAXBUFLEN];
-//	char *msg = "Hey server whatsup!";
+	char msg[MAXBUFLEN];
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
@@ -35,26 +35,69 @@ int main()
 		perror("Connect error");
 	}
 
-/*	len = strlen(msg);
-	numbytes = send(sockfd, msg, len, 0);
-	if (numbytes == -1)
-		perror("send error");
-*/
 	numbytes = recv(sockfd, buf, MAXBUFLEN-1, 0);
+		
+	if (numbytes == -1) {
+		perror("receive error");
+			exit(1);
+		}
+		
+		if (numbytes == 0) {
+			printf("connection closed");
+			exit(1);
+		}
+		
+		buf[numbytes] = '\0';
+		printf("message received is '%s' \n", buf);
+	printf("done with one received\n");
 
+	while(1) {
+		
+		numbytes = recv(sockfd, buf, MAXBUFLEN-1, 0);
+			
+		if (numbytes == -1) {
+			perror("receive error");
+			exit(1);
+		}
+			
+		if (numbytes == 0) {
+			printf("connection closed");
+			exit(1);
+		}
+			
+		buf[numbytes] = '\0';
+
+		printf("message received is '%s' \n", buf);
+
+		printf("Enter the result: ");
+		fgets(msg, MAXBUFLEN, stdin);
+			
+		if(strncmp(msg, "stop", 4) == 0) {
+			if (send(sockfd, msg, strlen(msg), 0) == -1)
+				perror("send");
+			break;
+		}
+                        
+		if (send(sockfd, msg, strlen(msg), 0) == -1)
+			perror("send");
+	}
+		
+	numbytes = recv(sockfd, buf, MAXBUFLEN-1, 0);
+	
 	if (numbytes == -1) {
 		perror("receive error");
 		exit(1);
 	}
+	
 	if (numbytes == 0) {
 		printf("connection closed");
 		exit(1);
 	}
-
+		
 	buf[numbytes] = '\0';
 	printf("message received is '%s' \n", buf);
 
-	freeaddrinfo(res);
 	close(sockfd);
+	freeaddrinfo(res);
 	return 0;
 }
