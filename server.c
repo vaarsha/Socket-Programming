@@ -6,7 +6,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#define PORTNO "3000"
+#define PORTNO "3490"
 #define BACKLOG 5
 
 int main(int argc, char *argv[])
