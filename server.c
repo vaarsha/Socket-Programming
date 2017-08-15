@@ -92,8 +92,9 @@ int main(int argc, char *argv[])
 		num2 = rand()%20;
 		opt = op[rand()%4];
 		output = calculate(num1, opt, num2);
-		
+
 		sprintf(strtoint," %d %c %d",num1, opt, num2);
+		printf("the sent eqution is %s\n",strtoint);
 
 		if(send(newsockfd, strtoint, strlen(strtoint), 0) == -1) {
 				close(newsockfd);
@@ -119,10 +120,13 @@ int main(int argc, char *argv[])
 
 		retval = atoi(buf);
 
-		if (retval == output)
+		if (retval == output) {
+			printf("Correct answer\n");
 			score++;
-		else
+		} else {
+			printf("Incorrect answer\n");
 			score--;
+		}
 	}
 	
 out:
