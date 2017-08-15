@@ -39,17 +39,16 @@ int main()
 		
 	if (numbytes == -1) {
 		perror("receive error");
-			exit(1);
-		}
+		exit(1);
+	}
 		
-		if (numbytes == 0) {
-			printf("connection closed");
-			exit(1);
-		}
+	if (numbytes == 0) {
+		printf("connection closed");
+		exit(1);
+	}
 		
-		buf[numbytes] = '\0';
-		printf("message received is '%s' \n", buf);
-	printf("done with one received\n");
+	buf[numbytes] = '\0';
+	printf("Message from server '%s' \n", buf);
 
 	while(1) {
 		
